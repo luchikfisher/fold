@@ -1,0 +1,35 @@
+package com.fold.kernel.ids;
+
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Identifies an explicit investigative hypothesis.
+ *
+ * @param value the underlying UUID
+ */
+public record HypothesisId(UUID value) implements DomainId<UUID> {
+
+    public HypothesisId {
+        Objects.requireNonNull(value, "value must not be null");
+    }
+
+    public static HypothesisId random() {
+        return new HypothesisId(UUID.randomUUID());
+    }
+
+    public static HypothesisId from(String value) {
+        Objects.requireNonNull(value, "value must not be null");
+
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("value must not be blank");
+        }
+
+        return new HypothesisId(UUID.fromString(value));
+    }
+
+    @Override
+    public String toString() {
+        return asString();
+    }
+}
