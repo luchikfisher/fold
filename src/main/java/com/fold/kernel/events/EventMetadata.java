@@ -30,19 +30,33 @@ public record EventMetadata(
 
     public EventMetadata {
         Objects.requireNonNull(eventId, "eventId must not be null");
+
         Objects.requireNonNull(
                 correlationId,
                 "correlationId must not be null"
         );
+
         Objects.requireNonNull(
                 emittedAt,
                 "emittedAt must not be null"
         );
-        Objects.requireNonNull(producer, "producer must not be null");
+
+        Objects.requireNonNull(
+                producer,
+                "producer must not be null"
+        );
 
         if (producer.isBlank()) {
             throw new IllegalArgumentException(
                     "producer must not be blank"
+            );
+        }
+
+        if (causationId == null
+                && !correlationId.value()
+                .equals(eventId.value())) {
+            throw new IllegalArgumentException(
+                    "root event correlationId must match eventId"
             );
         }
     }

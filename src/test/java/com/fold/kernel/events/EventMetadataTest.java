@@ -115,4 +115,27 @@ class EventMetadataTest {
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("causationId must not be null");
     }
+
+    @Test
+    void rootEventShouldRequireCorrelationIdToMatchEventId() {
+        EventId eventId =
+                EventId.random();
+
+        CorrelationId correlationId =
+                CorrelationId.random();
+
+        assertThatThrownBy(
+                () -> new EventMetadata(
+                        eventId,
+                        correlationId,
+                        null,
+                        NOW,
+                        "claims"
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "root event correlationId must match eventId"
+                );
+    }
 }
