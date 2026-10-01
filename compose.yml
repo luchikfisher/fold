@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fold
+      POSTGRES_USER: fold
+      POSTGRES_PASSWORD: fold
+    ports:
+      - "5432"

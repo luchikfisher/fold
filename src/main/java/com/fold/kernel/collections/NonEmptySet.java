@@ -1,10 +1,6 @@
 package com.fold.kernel.collections;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -15,7 +11,7 @@ import java.util.stream.Stream;
  * supplied values.</p>
  *
  * @param values the contained values
- * @param <T> element type
+ * @param <T>    element type
  */
 public record NonEmptySet<T>(Set<T> values)
         implements Iterable<T> {

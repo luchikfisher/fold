@@ -18,7 +18,7 @@ public sealed interface Result<T>
      * Creates a successful result.
      *
      * @param value the success value
-     * @param <T> the value type
+     * @param <T>   the value type
      * @return a successful result
      */
     static <T> Result<T> success(T value) {
@@ -29,7 +29,7 @@ public sealed interface Result<T>
      * Creates a failed result.
      *
      * @param error the domain error
-     * @param <T> the expected success type
+     * @param <T>   the expected success type
      * @return a failed result
      */
     static <T> Result<T> failure(DomainError error) {
@@ -48,7 +48,7 @@ public sealed interface Result<T>
      *
      * @param onSuccess function applied to a successful value
      * @param onFailure function applied to a domain error
-     * @param <R> the resulting type
+     * @param <R>       the resulting type
      * @return the mapped result
      */
     <R> R fold(
@@ -60,7 +60,7 @@ public sealed interface Result<T>
      * Transforms the success value while preserving a failure unchanged.
      *
      * @param mapper success-value transformation
-     * @param <R> the transformed success type
+     * @param <R>    the transformed success type
      * @return the mapped result
      */
     <R> Result<R> map(

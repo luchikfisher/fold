@@ -13,7 +13,7 @@ import java.util.Optional;
  * <p>An absent end represents an interval that continues indefinitely.</p>
  *
  * @param startInclusive the inclusive beginning of the range
- * @param endExclusive the exclusive end, or {@code null} for an open-ended range
+ * @param endExclusive   the exclusive end, or {@code null} for an open-ended range
  */
 public record TimeRange(
         Timestamp startInclusive,

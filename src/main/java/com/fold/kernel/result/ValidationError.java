@@ -5,7 +5,7 @@ import java.util.Objects;
 /**
  * Describes a violation of an input or domain invariant.
  *
- * @param code the stable machine-readable error code
+ * @param code    the stable machine-readable error code
  * @param message the human-readable description
  */
 public record ValidationError(

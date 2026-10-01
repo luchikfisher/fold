@@ -7,7 +7,7 @@ import java.util.function.Function;
  * A successful {@link Result}.
  *
  * @param value the produced value
- * @param <T> the value type
+ * @param <T>   the value type
  */
 public record Success<T>(T value) implements Result<T> {
 

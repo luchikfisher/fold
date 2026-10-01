@@ -31,7 +31,7 @@ public record UuidDomainId(UUID id) implements DomainId {
      *
      * @param value the UUID string
      * @return the parsed identifier
-     * @throws NullPointerException if {@code value} is null
+     * @throws NullPointerException     if {@code value} is null
      * @throws IllegalArgumentException if {@code value} is blank or is not a valid UUID
      */
     public static UuidDomainId from(String value) {
