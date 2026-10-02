@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ObservationPersistenceMapperTest {
 
@@ -254,5 +255,85 @@ class ObservationPersistenceMapperTest {
                         )
                 )
         );
+    }
+
+    @Test
+    void shouldNormalizeSha256FingerprintWhenRestoringFromPersistence() {
+        Observation original =
+                receivedObservation();
+
+        ObservationRecord record =
+                mapper.toRecord(original);
+
+        ObservationRecord persisted =
+                new ObservationRecord(
+                        record.id(),
+                        record.type(),
+                        record.subjectType(),
+                        record.subjectExternalKey(),
+                        record.sourceId(),
+                        record.evidenceId(),
+                        record.externalRecordId(),
+                        record.fingerprintVersion(),
+                        record.fingerprintAlgorithm(),
+                        record.fingerprintValue()
+                                .toUpperCase(),
+                        record.observedAt(),
+                        record.arrivedAt(),
+                        record.status(),
+                        record.decidedAt(),
+                        record.rejectionCode(),
+                        record.rejectionMessage(),
+                        record.payload()
+                );
+
+        Observation restored =
+                mapper.toDomain(persisted);
+
+        assertThat(
+                restored.fingerprint().value()
+        ).isEqualTo(
+                record.fingerprintValue()
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidSha256FingerprintWhenRestoringFromPersistence() {
+        Observation original =
+                receivedObservation();
+
+        ObservationRecord record =
+                mapper.toRecord(original);
+
+        ObservationRecord persisted =
+                new ObservationRecord(
+                        record.id(),
+                        record.type(),
+                        record.subjectType(),
+                        record.subjectExternalKey(),
+                        record.sourceId(),
+                        record.evidenceId(),
+                        record.externalRecordId(),
+                        record.fingerprintVersion(),
+                        record.fingerprintAlgorithm(),
+                        "invalid",
+                        record.observedAt(),
+                        record.arrivedAt(),
+                        record.status(),
+                        record.decidedAt(),
+                        record.rejectionCode(),
+                        record.rejectionMessage(),
+                        record.payload()
+                );
+
+        assertThatThrownBy(
+                () -> mapper.toDomain(persisted)
+        )
+                .isInstanceOf(
+                        IllegalArgumentException.class
+                )
+                .hasMessage(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
     }
 }

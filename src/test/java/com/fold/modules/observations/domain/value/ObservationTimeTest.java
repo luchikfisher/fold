@@ -54,4 +54,41 @@ class ObservationTimeTest {
         assertThat(observedAt.value().isAfter(arrivedAt.value()))
                 .isTrue();
     }
+
+    @Test
+    void observedAtShouldNormalizeToMicrosecondPrecision() {
+        ObservedAt observedAt =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-10-02T10:00:00.123456789Z"
+                        )
+                );
+
+        assertThat(observedAt.value())
+                .isEqualTo(
+                        Timestamp.parse(
+                                "2026-10-02T10:00:00.123456Z"
+                        )
+                );
+    }
+
+    @Test
+    void observedAtValuesWithinSameMicrosecondShouldBeEqual() {
+        ObservedAt first =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-10-02T10:00:00.1234561Z"
+                        )
+                );
+
+        ObservedAt second =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-10-02T10:00:00.1234569Z"
+                        )
+                );
+
+        assertThat(first)
+                .isEqualTo(second);
+    }
 }

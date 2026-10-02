@@ -219,4 +219,69 @@ class PostgresObservationRepositoryTest
                 )
         );
     }
+
+    @Test
+    void observedAtShouldRoundTripWithoutPrecisionDrift() {
+        Observation observation =
+                Observation.receive(
+                        ObservationId.random(),
+                        ObservationType.of(
+                                "organization-registration"
+                        ),
+                        ObservationSubject.of(
+                                "organization",
+                                "registry:company:123"
+                        ),
+                        ObservationPayload.of(
+                                ObservationField.of(
+                                        "organization.name",
+                                        ObservationValue.Text.of(
+                                                "Acme Ltd"
+                                        )
+                                )
+                        ),
+                        ObservationOrigin.fromRecord(
+                                SourceId.random(),
+                                "record-123"
+                        ),
+                        ObservationFingerprint.sha256V1(
+                                "0123456789abcdef".repeat(4)
+                        ),
+                        ObservedAt.of(
+                                Timestamp.parse(
+                                        "2026-09-29T10:00:00.123456789Z"
+                                )
+                        ),
+                        ArrivedAt.of(
+                                Timestamp.parse(
+                                        "2026-09-29T10:00:01Z"
+                                )
+                        )
+                );
+
+        observation.accept(
+                Timestamp.parse(
+                        "2026-09-29T10:00:02Z"
+                )
+        );
+
+        repository.add(observation);
+
+        Observation restored =
+                repository.findById(
+                        observation.id()
+                ).orElseThrow();
+
+        assertThat(restored.observedAt())
+                .isEqualTo(
+                        observation.observedAt()
+                );
+
+        assertThat(restored.observedAt().value())
+                .isEqualTo(
+                        Timestamp.parse(
+                                "2026-09-29T10:00:00.123456Z"
+                        )
+                );
+    }
 }

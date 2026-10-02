@@ -40,6 +40,7 @@ public record ObservationFingerprint(
                 algorithm,
                 "algorithm must not be null"
         );
+
         Objects.requireNonNull(
                 value,
                 "value must not be null"
@@ -68,6 +69,16 @@ public record ObservationFingerprint(
                     "value must not contain leading or trailing whitespace"
             );
         }
+
+        if (SHA_256.equals(algorithm)) {
+            value = value.toLowerCase(Locale.ROOT);
+
+            if (!value.matches("[0-9a-f]{64}")) {
+                throw new IllegalArgumentException(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
+            }
+        }
     }
 
     /**
@@ -88,7 +99,7 @@ public record ObservationFingerprint(
     /**
      * Creates a versioned SHA-256 observation fingerprint.
      *
-     * @param version           the canonicalization version
+     * @param version            the canonicalization version
      * @param hexadecimalDigest a 64-character hexadecimal SHA-256 digest
      * @return the fingerprint
      */
@@ -96,24 +107,10 @@ public record ObservationFingerprint(
             int version,
             String hexadecimalDigest
     ) {
-        Objects.requireNonNull(
-                hexadecimalDigest,
-                "hexadecimalDigest must not be null"
-        );
-
-        String normalized =
-                hexadecimalDigest.toLowerCase(Locale.ROOT);
-
-        if (!normalized.matches("[0-9a-f]{64}")) {
-            throw new IllegalArgumentException(
-                    "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
-            );
-        }
-
         return new ObservationFingerprint(
                 version,
                 SHA_256,
-                normalized
+                hexadecimalDigest
         );
     }
 

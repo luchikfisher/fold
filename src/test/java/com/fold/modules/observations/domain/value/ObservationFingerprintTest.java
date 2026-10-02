@@ -18,6 +18,9 @@ class ObservationFingerprintTest {
         ObservationFingerprint fingerprint =
                 ObservationFingerprint.sha256V1(SHA_256);
 
+        assertThat(fingerprint.version())
+                .isEqualTo(1);
+
         assertThat(fingerprint.algorithm())
                 .isEqualTo("SHA-256");
 
@@ -29,7 +32,7 @@ class ObservationFingerprintTest {
     }
 
     @Test
-    void shouldNormalizeHexadecimalCase() {
+    void shouldNormalizeHexadecimalCaseThroughFactory() {
         ObservationFingerprint fingerprint =
                 ObservationFingerprint.sha256V1(
                         SHA_256.toUpperCase()
@@ -40,17 +43,48 @@ class ObservationFingerprintTest {
     }
 
     @Test
-    void shouldRejectInvalidSha256Length() {
+    void shouldNormalizeHexadecimalCaseThroughCanonicalConstructor() {
+        ObservationFingerprint fingerprint =
+                new ObservationFingerprint(
+                        1,
+                        ObservationFingerprint.SHA_256,
+                        SHA_256.toUpperCase()
+                );
+
+        assertThat(fingerprint.value())
+                .isEqualTo(SHA_256);
+    }
+
+    @Test
+    void shouldRejectInvalidSha256LengthThroughFactory() {
         assertThatThrownBy(
                 () -> ObservationFingerprint.sha256V1(
                         "abcdef"
                 )
         )
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
     }
 
     @Test
-    void shouldRejectNonHexadecimalSha256() {
+    void shouldRejectInvalidSha256LengthThroughCanonicalConstructor() {
+        assertThatThrownBy(
+                () -> new ObservationFingerprint(
+                        1,
+                        ObservationFingerprint.SHA_256,
+                        "abcdef"
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
+    }
+
+    @Test
+    void shouldRejectNonHexadecimalSha256ThroughFactory() {
         String invalid =
                 "z".repeat(64);
 
@@ -59,11 +93,50 @@ class ObservationFingerprintTest {
                         invalid
                 )
         )
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
     }
 
     @Test
-    void genericFingerprintShouldRetainAlgorithm() {
+    void shouldRejectNonHexadecimalSha256ThroughCanonicalConstructor() {
+        String invalid =
+                "z".repeat(64);
+
+        assertThatThrownBy(
+                () -> new ObservationFingerprint(
+                        1,
+                        ObservationFingerprint.SHA_256,
+                        invalid
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "SHA-256 fingerprint must contain exactly 64 hexadecimal characters"
+                );
+    }
+
+    @Test
+    void directAndFactoryConstructionShouldProduceEqualSha256Fingerprints() {
+        ObservationFingerprint throughFactory =
+                ObservationFingerprint.sha256V1(
+                        SHA_256
+                );
+
+        ObservationFingerprint directly =
+                new ObservationFingerprint(
+                        1,
+                        ObservationFingerprint.SHA_256,
+                        SHA_256.toUpperCase()
+                );
+
+        assertThat(directly)
+                .isEqualTo(throughFactory);
+    }
+
+    @Test
+    void genericFingerprintShouldRetainAlgorithmAndValue() {
         ObservationFingerprint fingerprint =
                 new ObservationFingerprint(
                         7,
@@ -79,5 +152,21 @@ class ObservationFingerprintTest {
 
         assertThat(fingerprint.value())
                 .isEqualTo("abc123");
+
+        assertThat(fingerprint.isSha256())
+                .isFalse();
+    }
+
+    @Test
+    void genericFingerprintShouldPreserveCase() {
+        ObservationFingerprint fingerprint =
+                new ObservationFingerprint(
+                        7,
+                        "TEST",
+                        "AbC123"
+                );
+
+        assertThat(fingerprint.value())
+                .isEqualTo("AbC123");
     }
 }

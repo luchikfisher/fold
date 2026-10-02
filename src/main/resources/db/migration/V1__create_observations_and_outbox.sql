@@ -15,7 +15,7 @@ CREATE TABLE observations
     fingerprint_algorithm TEXT        NOT NULL,
     fingerprint_value     TEXT        NOT NULL,
 
-    observed_at           TIMESTAMPTZ NOT NULL,
+    observed_at           TIMESTAMPTZ(6) NOT NULL,
     arrived_at            TIMESTAMPTZ NOT NULL,
 
     status                TEXT        NOT NULL,

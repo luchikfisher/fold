@@ -493,4 +493,88 @@ class Sha256ObservationFingerprintPolicyTest {
                 )
         );
     }
+
+    @Test
+    void subMicrosecondObservedAtDifferenceShouldNotAffectFingerprint() {
+        ObservedAt firstObservedAt =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-09-27T10:00:00.1234561Z"
+                        )
+                );
+
+        ObservedAt secondObservedAt =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-09-27T10:00:00.1234569Z"
+                        )
+                );
+
+        ObservationFingerprint first =
+                policy.calculate(
+                        new ObservationFingerprintPolicy.Input(
+                                defaultType(),
+                                defaultSubject(),
+                                defaultPayload(),
+                                defaultOrigin(),
+                                firstObservedAt
+                        )
+                );
+
+        ObservationFingerprint second =
+                policy.calculate(
+                        new ObservationFingerprintPolicy.Input(
+                                defaultType(),
+                                defaultSubject(),
+                                defaultPayload(),
+                                defaultOrigin(),
+                                secondObservedAt
+                        )
+                );
+
+        assertThat(first)
+                .isEqualTo(second);
+    }
+
+    @Test
+    void differentObservedAtMicrosecondsShouldAffectFingerprint() {
+        ObservedAt firstObservedAt =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-09-27T10:00:00.123456Z"
+                        )
+                );
+
+        ObservedAt secondObservedAt =
+                ObservedAt.of(
+                        Timestamp.parse(
+                                "2026-09-27T10:00:00.123457Z"
+                        )
+                );
+
+        ObservationFingerprint first =
+                policy.calculate(
+                        new ObservationFingerprintPolicy.Input(
+                                defaultType(),
+                                defaultSubject(),
+                                defaultPayload(),
+                                defaultOrigin(),
+                                firstObservedAt
+                        )
+                );
+
+        ObservationFingerprint second =
+                policy.calculate(
+                        new ObservationFingerprintPolicy.Input(
+                                defaultType(),
+                                defaultSubject(),
+                                defaultPayload(),
+                                defaultOrigin(),
+                                secondObservedAt
+                        )
+                );
+
+        assertThat(first)
+                .isNotEqualTo(second);
+    }
 }
