@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  * contract rather than requiring repeated runtime checks by every consumer.</p>
  *
  * @param values the contained values
- * @param <T> element type
+ * @param <T>    element type
  */
 public record NonEmptyList<T>(List<T> values)
         implements Iterable<T> {

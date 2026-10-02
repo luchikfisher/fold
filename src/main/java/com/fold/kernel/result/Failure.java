@@ -7,7 +7,7 @@ import java.util.function.Function;
  * A failed {@link Result} containing an expected domain error.
  *
  * @param error the represented domain failure
- * @param <T> the success type that would otherwise have been produced
+ * @param <T>   the success type that would otherwise have been produced
  */
 public record Failure<T>(DomainError error)
         implements Result<T> {

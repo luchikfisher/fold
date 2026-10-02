@@ -6,11 +6,11 @@ import java.util.Objects;
 /**
  * Represents one page of a larger result set.
  *
- * @param items items contained in this page
- * @param page zero-based page index
- * @param size configured page size
+ * @param items         items contained in this page
+ * @param page          zero-based page index
+ * @param size          configured page size
  * @param totalElements total number of matching elements
- * @param <T> item type
+ * @param <T>           item type
  */
 public record Page<T>(
         List<T> items,

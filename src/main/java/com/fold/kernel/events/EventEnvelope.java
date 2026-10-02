@@ -10,8 +10,8 @@ import java.util.Objects;
  * is this, when was it emitted, by whom, and as a consequence of what".</p>
  *
  * @param metadata the emission metadata
- * @param payload the integration-event payload
- * @param <T> the concrete event type
+ * @param payload  the integration-event payload
+ * @param <T>      the concrete event type
  */
 public record EventEnvelope<T extends IntegrationEvent>(
         EventMetadata metadata,

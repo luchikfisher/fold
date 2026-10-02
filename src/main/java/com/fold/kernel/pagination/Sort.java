@@ -8,7 +8,7 @@ import java.util.Objects;
  * <p>The field name belongs to the API or query contract interpreting this
  * value. Sort itself does not inspect domain objects.</p>
  *
- * @param field the field to order by
+ * @param field     the field to order by
  * @param direction the ordering direction
  */
 public record Sort(
