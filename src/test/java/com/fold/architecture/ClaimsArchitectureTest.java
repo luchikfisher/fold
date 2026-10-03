@@ -128,4 +128,67 @@ class ClaimsArchitectureTest {
                 )
                 .check(classes);
     }
+
+    @Test
+    void claimsApplicationMustNotDependOnClaimsInfrastructure() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.application.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.fold.modules.claims.infrastructure.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsApplicationMustNotDependOnSpring() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.application.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "org.springframework.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsApplicationMustNotDependOnJackson() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.application.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "tools.jackson..",
+                        "com.fasterxml.jackson.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsApplicationMustNotDependOnObservationInternals() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.application.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.fold.modules.observations.domain..",
+                        "com.fold.modules.observations.application..",
+                        "com.fold.modules.observations.infrastructure.."
+                )
+                .check(classes);
+    }
 }
