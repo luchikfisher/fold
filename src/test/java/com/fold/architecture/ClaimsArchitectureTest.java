@@ -191,4 +191,36 @@ class ClaimsArchitectureTest {
                 )
                 .check(classes);
     }
+
+    @Test
+    void claimsDomainMustRemainIndependentOfObservationApi() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.domain.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.fold.modules.observations.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsObservationIntegrationMustUseOnlyObservationPublicApi() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.application.integration.observations.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.fold.modules.observations.domain..",
+                        "com.fold.modules.observations.application..",
+                        "com.fold.modules.observations.infrastructure.."
+                )
+                .check(classes);
+    }
 }
