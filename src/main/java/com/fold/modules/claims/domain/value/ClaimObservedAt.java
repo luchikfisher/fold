@@ -12,9 +12,8 @@ import java.util.Objects;
  * describes when information was observed or reported; valid time describes
  * when the asserted proposition is considered applicable in the world.</p>
  *
- * <p>Unlike {@code observations.ObservedAt}, this value object does not impose
- * PostgreSQL-specific microsecond canonicalization. Claims owns its own
- * temporal semantics.</p>
+ * <p>The wrapped {@link Timestamp} already has canonical microsecond precision.
+ * This value object supplies the Claims-specific temporal meaning.</p>
  *
  * @param value observed timestamp
  */

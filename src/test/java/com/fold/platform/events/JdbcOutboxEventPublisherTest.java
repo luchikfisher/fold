@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
@@ -29,16 +30,19 @@ class JdbcOutboxEventPublisherTest
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    ObjectMapper objectMapper;
+
     @Test
     void shouldPersistCompleteEventEnvelope() {
         Timestamp occurredAt =
                 Timestamp.parse(
-                        "2026-10-01T10:00:00Z"
+                        "2026-10-01T10:00:00.123456789Z"
                 );
 
         Timestamp emittedAt =
                 Timestamp.parse(
-                        "2026-10-01T10:00:01Z"
+                        "2026-10-01T10:00:01.987654999Z"
                 );
 
         EventId eventId =
@@ -136,6 +140,9 @@ class JdbcOutboxEventPublisherTest
 
         String payload =
                 (String) row.get("payload");
+
+        assertThat(objectMapper.readValue(payload, ObservationAcceptedV1.class))
+                .isEqualTo(event);
 
         assertThat(payload)
                 .contains(

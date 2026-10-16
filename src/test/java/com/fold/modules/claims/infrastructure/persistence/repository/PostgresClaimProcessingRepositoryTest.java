@@ -96,7 +96,7 @@ class PostgresClaimProcessingRepositoryTest
                 new ClaimProcessingReceipt(
                         key,
                         Timestamp.parse(
-                                "2026-10-03T12:00:00Z"
+                                "2026-10-03T12:00:00.123456789Z"
                         ),
                         List.of(
                                 first,
@@ -122,6 +122,8 @@ class PostgresClaimProcessingRepositoryTest
                         result)
                         .receipt();
 
+        assertThat(restored).isEqualTo(completed);
+
         assertThat(restored.key())
                 .isEqualTo(key);
 
@@ -143,7 +145,7 @@ class PostgresClaimProcessingRepositoryTest
                 new ClaimProcessingReceipt(
                         key,
                         Timestamp.parse(
-                                "2026-10-03T12:00:00Z"
+                                "2026-10-03T12:00:00.123456789Z"
                         ),
                         List.of()
                 )
@@ -172,7 +174,7 @@ class PostgresClaimProcessingRepositoryTest
                 new ClaimProcessingReceipt(
                         key,
                         Timestamp.parse(
-                                "2026-10-03T12:00:00Z"
+                                "2026-10-03T12:00:00.123456789Z"
                         ),
                         List.of()
                 );

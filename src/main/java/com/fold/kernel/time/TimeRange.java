@@ -12,6 +12,10 @@ import java.util.Optional;
  *
  * <p>An absent end represents an interval that continues indefinitely.</p>
  *
+ * <p>Boundaries use {@link Timestamp}'s canonical microsecond precision. A
+ * finite range whose input boundaries collapse to the same microsecond is
+ * empty and is rejected.</p>
+ *
  * @param startInclusive the inclusive beginning of the range
  * @param endExclusive   the exclusive end, or {@code null} for an open-ended range
  */

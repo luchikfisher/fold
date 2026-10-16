@@ -225,11 +225,11 @@ because information may describe future-dated events or future-effective facts.
 
 The higher-level temporal model will later distinguish additional temporal semantics such as valid time and knowledge/system time.
 
-`ObservedAt` is canonicalized to microsecond precision.
+`ObservedAt` wraps a `Timestamp` that is already canonical at microsecond precision.
 
-This is intentional because the authoritative PostgreSQL persistence representation stores `observed_at` with microsecond precision.
+This system-wide invariant also matches PostgreSQL `TIMESTAMPTZ` precision, so persistence preserves already-canonical values exactly.
 
-The canonicalization occurs at the `ObservedAt` value-object boundary so that the domain representation, fingerprint representation, and persisted representation remain consistent.
+Canonicalization occurs only in the kernel `Timestamp` constructor: every constructor/factory/parser truncates to microseconds, never rounds. Domain wrappers, fingerprinting, and persistence reuse that value.
 
 Conceptually:
 
@@ -237,7 +237,7 @@ Conceptually:
 source timestamp
 2026-10-02T10:00:00.123456789Z
               ↓
-ObservedAt
+Timestamp (then wrapped by ObservedAt)
 2026-10-02T10:00:00.123456Z
               ↓
 fingerprint
@@ -249,11 +249,9 @@ PostgreSQL
 
 This prevents the system from fingerprinting temporal precision that the authoritative store cannot retain.
 
-The kernel-level `Timestamp` abstraction itself remains capable of representing the full precision supported by Java `Instant`.
+The kernel-level `Timestamp` is the single canonical temporal primitive throughout FOLD. This applies to Observation and Claim times, arrival and decision times, lifecycle revisions, event metadata, processing timestamps, `TimeRange`/`ValidTime`/`KnowledgeTime` endpoints, and timestamp-valued payloads.
 
-Microsecond canonicalization is therefore not a universal FOLD timestamp rule.
-
-It is specifically part of the `ObservedAt` semantic contract.
+Finer raw source precision belongs in raw/source evidence, not in `Timestamp`. Values within one microsecond compare and hash equally. Distinct microseconds remain distinct. Finite ranges whose endpoints collapse to the same microsecond are rejected as empty; non-decreasing lifecycle times may be equal, with revision numbers preserving lifecycle order.
 
 ---
 
@@ -622,7 +620,7 @@ The reasoning is important.
 
 Lifecycle state obviously cannot participate because fingerprinting happens before admission.
 
-`ObservedAt` participates in fingerprinting after its own value-object canonicalization.
+`ObservedAt` participates in fingerprinting with the canonical value supplied by `Timestamp`.
 
 For fingerprint version 1, this means microsecond precision.
 
@@ -650,7 +648,7 @@ By contrast:
 
 remain semantically distinct timestamps for fingerprint v1.
 
-This precision rule is part of the fingerprint-v1 semantic contract.
+This precision rule is part of the fingerprint-v1 semantic contract. The v1 encoding and version remain unchanged. Timestamp-valued payload fields, including nested list values, now also collapse sub-microsecond differences through `Timestamp`. Existing microsecond-aligned inputs retain their hashes. Historical payloads containing finer timestamp precision can produce different hashes when reconstructed and fingerprinted under this invariant; stored fingerprints are not automatically recomputed by this refactor.
 
 ---
 
@@ -1039,7 +1037,7 @@ payload
 TIMESTAMPTZ(6)
 ```
 
-The explicit precision matches the `ObservedAt` domain canonicalization contract.
+The explicit precision matches the kernel `Timestamp` canonicalization contract, which also applies to arrival and decision times.
 
 This prevents fingerprint semantics from depending on sub-microsecond temporal precision that the authoritative Observation store cannot preserve.
 
@@ -1219,16 +1217,16 @@ Likewise:
 ```text
 persisted observed_at
         ↓
-ObservedAt
+Timestamp (canonical microsecond representation)
         ↓
-canonical microsecond representation
+ObservedAt (source-facing temporal meaning)
 ```
 
 Reconstruction ultimately calls the aggregate restoration path so invalid lifecycle states are still rejected by the domain.
 
 The mapper is not responsible for duplicating fingerprint or temporal canonicalization logic.
 
-Those rules remain owned by the relevant domain value objects.
+Fingerprint validation remains owned by `ObservationFingerprint`; temporal precision is owned solely by kernel `Timestamp`.
 
 ---
 
@@ -1471,7 +1469,7 @@ and converting them into domain types.
 
 Invalid transport values become request errors, not malformed domain objects.
 
-When HTTP input contains an `ObservedAt` timestamp with precision finer than microseconds, construction of the domain `ObservedAt` produces its canonical microsecond representation before that value participates in fingerprinting or persistence.
+When HTTP input contains a timestamp with precision finer than microseconds, `Timestamp.parse` truncates it before it enters `ObservedAt` or a timestamp-valued payload and participates in fingerprinting or persistence.
 
 ---
 
@@ -1597,13 +1595,14 @@ equivalence between factory and direct construction
 
 This specifically ensures that persistence reconstruction cannot bypass SHA-256 invariants.
 
-Temporal value-object tests cover `ObservedAt` microsecond canonicalization.
+Kernel tests cover all `Timestamp` construction paths, microsecond truncation, equality, ordering, exact microsecond preservation, and range boundaries. Temporal wrapper tests verify that `ObservedAt` carries this invariant.
 
 They verify both:
 
 ```text
 nanosecond input
-→ canonical microsecond ObservedAt
+→ canonical microsecond Timestamp
+→ ObservedAt
 ```
 
 and:
@@ -1967,7 +1966,7 @@ External timestamps may arrive with precision greater than the canonical `Observ
 
 The HTTP boundary does not own that temporal rule.
 
-It passes the semantic timestamp into the domain representation, where `ObservedAt` performs canonicalization.
+It constructs the semantic timestamp through `Timestamp.parse`, which owns canonicalization before the value is wrapped by `ObservedAt`.
 
 ---
 
@@ -2030,7 +2029,7 @@ HTTP request
       ↓
 typed domain/application values
       ↓
-ObservedAt canonicalization
+Timestamp canonicalization
       ↓
 deterministic fingerprint v1
       ↓
@@ -2090,12 +2089,12 @@ and are represented canonically in lowercase.
 Fingerprint invariants apply to every construction path,
 including persistence reconstruction.
 
-ObservedAt is canonicalized to microsecond precision.
+Timestamp canonicalizes all temporal values to microsecond precision by truncation.
 
 Sub-microsecond differences therefore do not create distinct
 ObservedAt values or fingerprint identities in v1.
 
-Timestamp itself is not globally restricted to microseconds.
+The same invariant applies to every Timestamp throughout FOLD, including timestamp-valued payloads.
 
 Application deduplication is advisory.
 Database uniqueness is authoritative.
@@ -2182,8 +2181,8 @@ And the external contract is intentionally much smaller than everything inside t
 The current implementation also establishes two particularly important canonicalization boundaries:
 
 ```text
-ObservedAt
-→ canonical microsecond temporal representation
+Timestamp (kernel)
+→ canonical UTC microsecond temporal representation throughout FOLD
 
 ObservationFingerprint(SHA-256)
 → canonical validated lowercase digest representation

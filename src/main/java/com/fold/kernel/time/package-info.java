@@ -2,7 +2,8 @@
  * Universal temporal primitives used by FOLD.
  *
  * <p>The package distinguishes absolute time from temporal meaning. A
- * {@link com.fold.kernel.time.Timestamp} identifies a point on the timeline,
+ * {@link com.fold.kernel.time.Timestamp} identifies a point on the UTC timeline
+ * with canonical microsecond precision (truncating finer precision),
  * while {@link com.fold.kernel.time.ValidTime} and
  * {@link com.fold.kernel.time.KnowledgeTime} represent different temporal
  * dimensions of the knowledge model.</p>

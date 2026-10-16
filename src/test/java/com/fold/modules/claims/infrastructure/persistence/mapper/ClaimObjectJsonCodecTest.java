@@ -66,7 +66,7 @@ class ClaimObjectJsonCodecTest {
     }
 
     @Test
-    void shouldRoundTripTimestampWithNanosecondPrecision() {
+    void shouldRoundTripCanonicalTimestampExactly() {
         ClaimObject.TimestampValue value =
                 new ClaimObject.TimestampValue(
                         Timestamp.parse(
@@ -81,6 +81,19 @@ class ClaimObjectJsonCodecTest {
 
         assertThat(decoded)
                 .isEqualTo(value);
+        assertThat(codec.encode(value))
+                .contains("2026-10-03T10:00:00.123456Z");
+    }
+
+    @Test
+    void shouldDecodeFinerPrecisionThroughTimestampInvariant() {
+        ClaimObject decoded = codec.decode("""
+                {"type":"timestamp","value":"2026-10-03T10:00:00.123456789Z"}
+                """);
+
+        assertThat(decoded).isEqualTo(new ClaimObject.TimestampValue(
+                Timestamp.parse("2026-10-03T10:00:00.123456Z")
+        ));
     }
 
     @Test

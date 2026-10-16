@@ -41,7 +41,7 @@ class ObservationPayloadJsonCodecTest {
                                 "timestamp",
                                 ObservationValue.TimestampValue.of(
                                         Timestamp.parse(
-                                                "2026-10-01T12:30:00Z"
+                                                "2026-10-01T12:30:00.123456789Z"
                                         )
                                 )
                         ),
@@ -72,6 +72,24 @@ class ObservationPayloadJsonCodecTest {
 
         assertThat(restored)
                 .isEqualTo(original);
+        assertThat(encoded).contains("2026-10-01T12:30:00.123456Z");
+    }
+
+    @Test
+    void shouldDecodeNestedTimestampThroughTimestampInvariant() {
+        ObservationPayload decoded = codec.decode("""
+                [{"name":"times","value":{"type":"list","values":[
+                  {"type":"timestamp","value":"2026-10-01T12:30:00.123456789Z"}
+                ]}}]
+                """);
+
+        assertThat(decoded).isEqualTo(ObservationPayload.of(
+                ObservationField.of("times", ObservationValue.ListValue.of(
+                        ObservationValue.TimestampValue.of(
+                                Timestamp.parse("2026-10-01T12:30:00.123456Z")
+                        )
+                ))
+        ));
     }
 
     @Test

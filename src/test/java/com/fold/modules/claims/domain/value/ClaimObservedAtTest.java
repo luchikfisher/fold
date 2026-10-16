@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ClaimObservedAtTest {
 
     @Test
-    void shouldPreserveTimestampExactly() {
+    void shouldPreserveCanonicalTimestampExactly() {
         Timestamp timestamp =
                 Timestamp.parse(
                         "2026-10-02T10:00:00.123456789Z"
@@ -25,11 +25,11 @@ class ClaimObservedAtTest {
                 observedAt.value()
                         .value()
                         .getNano()
-        ).isEqualTo(123_456_789);
+        ).isEqualTo(123_456_000);
     }
 
     @Test
-    void shouldNotApplyObservationMicrosecondCanonicalization() {
+    void subMicrosecondDifferencesShouldBeEqual() {
         ClaimObservedAt first =
                 ClaimObservedAt.of(
                         Timestamp.parse(
@@ -45,7 +45,7 @@ class ClaimObservedAtTest {
                 );
 
         assertThat(first)
-                .isNotEqualTo(second);
+                .isEqualTo(second);
     }
 
     @Test

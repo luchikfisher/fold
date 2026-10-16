@@ -418,6 +418,34 @@ class Sha256ObservationFingerprintPolicyTest {
         );
     }
 
+    @Test
+    void timestampPayloadPrecisionShouldFollowCanonicalMicroseconds() {
+        Timestamp first = Timestamp.parse("2026-09-27T10:00:00.123456100Z");
+        Timestamp same = Timestamp.parse("2026-09-27T10:00:00.123456999Z");
+        Timestamp next = Timestamp.parse("2026-09-27T10:00:00.123457001Z");
+
+        for (boolean nested : new boolean[]{false, true}) {
+            ObservationFingerprint fingerprint = policy.calculate(
+                    inputWithPayload(timestampPayload(first, nested))
+            );
+            assertThat(fingerprint).isEqualTo(policy.calculate(
+                    inputWithPayload(timestampPayload(same, nested))
+            ));
+            assertThat(fingerprint).isNotEqualTo(policy.calculate(
+                    inputWithPayload(timestampPayload(next, nested))
+            ));
+            assertThat(fingerprint.version()).isEqualTo(1);
+        }
+    }
+
+    private static ObservationPayload timestampPayload(Timestamp timestamp, boolean nested) {
+        ObservationValue value = ObservationValue.TimestampValue.of(timestamp);
+        return ObservationPayload.of(ObservationField.of(
+                "reported-at",
+                nested ? ObservationValue.ListValue.of(value) : value
+        ));
+    }
+
     private static ObservationFingerprintPolicy.Input inputWithPayload(
             ObservationPayload payload
     ) {

@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SystemFoldClockTest {
 
     @Test
-    void shouldReturnTimestampFromUnderlyingClock() {
+    void shouldReturnCanonicalTimestampFromNanosecondClock() {
         Instant instant =
-                Instant.parse("2026-09-25T10:00:00Z");
+                Instant.parse("2026-09-25T10:00:00.123456789Z");
 
         Clock fixedClock =
                 Clock.fixed(
@@ -27,7 +27,7 @@ class SystemFoldClockTest {
                 new SystemFoldClock(fixedClock);
 
         assertThat(clock.now())
-                .isEqualTo(Timestamp.of(instant));
+                .isEqualTo(Timestamp.parse("2026-09-25T10:00:00.123456Z"));
     }
 
     @Test

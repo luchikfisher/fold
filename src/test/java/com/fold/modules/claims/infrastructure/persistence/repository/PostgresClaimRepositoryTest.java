@@ -2,8 +2,12 @@ package com.fold.modules.claims.infrastructure.persistence.repository;
 
 import com.fold.kernel.ids.ClaimId;
 import com.fold.kernel.time.Timestamp;
+import com.fold.kernel.time.ValidTime;
 import com.fold.modules.claims.domain.model.Claim;
 import com.fold.modules.claims.domain.value.ClaimLifecycleReason;
+import com.fold.modules.claims.domain.value.ClaimObject;
+import com.fold.modules.claims.domain.value.ClaimObservedAt;
+import com.fold.modules.claims.domain.value.ClaimProposition;
 import com.fold.modules.claims.infrastructure.persistence.mapper.ClaimObjectJsonCodec;
 import com.fold.modules.claims.infrastructure.persistence.mapper.ClaimPersistenceMapper;
 import com.fold.testsupport.PostgresIntegrationTest;
@@ -115,6 +119,46 @@ class PostgresClaimRepositoryTest
                 .containsExactlyElementsOf(
                         original.revisionHistory()
                 );
+    }
+
+    @Test
+    void shouldRoundTripAllCanonicalTimesAndTimestampObjectExactly() {
+        Timestamp start = Timestamp.parse("2026-10-03T10:00:00.123456789Z");
+        Timestamp end = Timestamp.parse("2026-10-03T10:00:00.123457999Z");
+        ClaimProposition template = ClaimTestFixtures.proposition();
+        Claim claim = Claim.create(
+                ClaimId.random(),
+                new ClaimProposition(
+                        template.subject(),
+                        template.predicate(),
+                        new ClaimObject.TimestampValue(start)
+                ),
+                ClaimTestFixtures.origin(),
+                ClaimTestFixtures.derivation(),
+                null,
+                ClaimObservedAt.of(start),
+                ValidTime.between(start, end),
+                start
+        ).claim();
+
+        claim.invalidate(
+                new ClaimLifecycleReason("RETRACTED", "Retracted by source"),
+                Timestamp.parse("2026-10-03T10:00:00.123456999Z")
+        );
+        claim.reinstate(
+                new ClaimLifecycleReason("RESTORED", "Retraction withdrawn"),
+                end
+        );
+
+        repository.add(claim);
+        Claim restored = repository.findById(claim.id()).orElseThrow();
+
+        assertThat(restored.createdAt()).isEqualTo(claim.createdAt());
+        assertThat(restored.observedAt()).isEqualTo(claim.observedAt());
+        assertThat(restored.validTime()).isEqualTo(claim.validTime());
+        assertThat(restored.proposition()).isEqualTo(claim.proposition());
+        assertThat(restored.revisionHistory())
+                .containsExactlyElementsOf(claim.revisionHistory());
     }
 
     @Test

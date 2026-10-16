@@ -140,7 +140,7 @@ class ClaimObjectTest {
     }
 
     @Test
-    void timestampShouldNotCanonicalizePrecision() {
+    void timestampShouldCarryCanonicalMicrosecondPrecision() {
         Timestamp timestamp =
                 Timestamp.parse(
                         "2026-10-02T10:00:00.123456789Z"
@@ -150,7 +150,7 @@ class ClaimObjectTest {
                 new ClaimObject.TimestampValue(timestamp);
 
         assertThat(value.value().value().getNano())
-                .isEqualTo(123_456_789);
+                .isEqualTo(123_456_000);
     }
 
     @Test
