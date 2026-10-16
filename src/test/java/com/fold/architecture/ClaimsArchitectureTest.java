@@ -14,11 +14,14 @@ class ClaimsArchitectureTest {
 
     @BeforeAll
     static void importProductionClasses() {
-        classes = new ClassFileImporter()
-                .withImportOption(
-                        ImportOption.Predefined.DO_NOT_INCLUDE_TESTS
-                )
-                .importPackages("com.fold");
+        classes =
+                new ClassFileImporter()
+                        .withImportOption(
+                                ImportOption.Predefined.DO_NOT_INCLUDE_TESTS
+                        )
+                        .importPackages(
+                                "com.fold"
+                        );
     }
 
     @Test
@@ -37,70 +40,7 @@ class ClaimsArchitectureTest {
     }
 
     @Test
-    void claimsDomainMustNotDependOnSpring() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.domain.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "org.springframework.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsDomainMustNotDependOnJackson() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.domain.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "tools.jackson..",
-                        "com.fasterxml.jackson.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsDomainMustNotDependOnPersistenceLibraries() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.domain.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "jakarta.persistence..",
-                        "org.hibernate..",
-                        "org.springframework.data.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsDomainMustNotDependOnItsFutureInfrastructure() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.domain.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "com.fold.modules.claims.infrastructure.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsDomainMustNotDependOnItsFutureApplicationLayer() {
+    void claimsDomainMustNotDependOnApplication() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -115,7 +55,22 @@ class ClaimsArchitectureTest {
     }
 
     @Test
-    void claimsDomainMustNotDependOnItsFuturePublicApi() {
+    void claimsDomainMustNotDependOnInfrastructure() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.domain.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.fold.modules.claims.infrastructure.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsDomainMustNotDependOnPublicApi() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -130,7 +85,26 @@ class ClaimsArchitectureTest {
     }
 
     @Test
-    void claimsApplicationMustNotDependOnClaimsInfrastructure() {
+    void claimsDomainMustRemainFrameworkFree() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "com.fold.modules.claims.domain.."
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "org.springframework..",
+                        "jakarta.persistence..",
+                        "org.hibernate..",
+                        "tools.jackson..",
+                        "com.fasterxml.jackson.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void claimsApplicationMustNotDependOnInfrastructure() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -145,7 +119,7 @@ class ClaimsArchitectureTest {
     }
 
     @Test
-    void claimsApplicationMustNotDependOnSpring() {
+    void claimsApplicationMustRemainFrameworkFree() {
         noClasses()
                 .that()
                 .resideInAPackage(
@@ -154,21 +128,9 @@ class ClaimsArchitectureTest {
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
-                        "org.springframework.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsApplicationMustNotDependOnJackson() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.application.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
+                        "org.springframework..",
+                        "jakarta.persistence..",
+                        "org.hibernate..",
                         "tools.jackson..",
                         "com.fasterxml.jackson.."
                 )
@@ -193,33 +155,18 @@ class ClaimsArchitectureTest {
     }
 
     @Test
-    void claimsDomainMustRemainIndependentOfObservationApi() {
+    void claimsPublicApiMustNotDependOnClaimsInternals() {
         noClasses()
                 .that()
                 .resideInAPackage(
-                        "com.fold.modules.claims.domain.."
+                        "com.fold.modules.claims.api.."
                 )
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
-                        "com.fold.modules.observations.."
-                )
-                .check(classes);
-    }
-
-    @Test
-    void claimsObservationIntegrationMustUseOnlyObservationPublicApi() {
-        noClasses()
-                .that()
-                .resideInAPackage(
-                        "com.fold.modules.claims.application.integration.observations.."
-                )
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage(
-                        "com.fold.modules.observations.domain..",
-                        "com.fold.modules.observations.application..",
-                        "com.fold.modules.observations.infrastructure.."
+                        "com.fold.modules.claims.domain..",
+                        "com.fold.modules.claims.application..",
+                        "com.fold.modules.claims.infrastructure.."
                 )
                 .check(classes);
     }

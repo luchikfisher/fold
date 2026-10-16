@@ -5,25 +5,24 @@ import com.fold.modules.claims.domain.derivation.ClaimDerivationInput;
 import com.fold.modules.claims.domain.derivation.ClaimDerivationRule;
 import com.fold.modules.claims.domain.derivation.ClaimProposal;
 import com.fold.modules.claims.domain.value.ClaimDerivation;
-import com.fold.modules.claims.domain.value.ClaimOriginReference;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
- * Applies registered semantic Claim derivation rules to one normalized
- * derivation input.
+ * Executes registered explicit semantic Claim derivation rules.
  *
- * <p>The engine performs orchestration and structural safety checks only. It
- * does not invent Claim semantics. All semantic production belongs to explicit
- * {@link ClaimDerivationRule} implementations.</p>
+ * <p>The authoritative processing workflow may first inspect applicable
+ * derivations, perform an atomic idempotency acquisition, and only then execute
+ * the corresponding derivation rule.</p>
  */
 public final class ClaimDerivationEngine {
 
     private final List<ClaimDerivationRule> rules;
+    private final Map<ClaimDerivation, ClaimDerivationRule> byDerivation;
 
     public ClaimDerivationEngine(
             List<ClaimDerivationRule> rules
@@ -39,66 +38,8 @@ public final class ClaimDerivationEngine {
             );
         }
 
-        validateUniqueDerivations(rules);
-
-        this.rules = List.copyOf(rules);
-    }
-
-    /**
-     * Executes every rule that explicitly supports the supplied input.
-     *
-     * <p>A supported rule always produces a batch, including when the rule
-     * produces zero Claim proposals.</p>
-     */
-    public List<ClaimDerivationBatch> derive(
-            ClaimDerivationInput input
-    ) {
-        Objects.requireNonNull(
-                input,
-                "input must not be null"
-        );
-
-        List<ClaimDerivationBatch> batches =
-                new ArrayList<>();
-
-        for (ClaimDerivationRule rule : rules) {
-            if (!rule.supports(input)) {
-                continue;
-            }
-
-            List<ClaimProposal> proposals =
-                    Objects.requireNonNull(
-                            rule.derive(input),
-                            "derivation rule must not return null"
-                    );
-
-            validateProposals(
-                    input,
-                    proposals
-            );
-
-            ClaimProcessingKey processingKey =
-                    new ClaimProcessingKey(
-                            input.observationId(),
-                            rule.derivation()
-                    );
-
-            batches.add(
-                    new ClaimDerivationBatch(
-                            processingKey,
-                            proposals
-                    )
-            );
-        }
-
-        return List.copyOf(batches);
-    }
-
-    private static void validateUniqueDerivations(
-            List<ClaimDerivationRule> rules
-    ) {
-        Set<ClaimDerivation> derivations =
-                new HashSet<>();
+        Map<ClaimDerivation, ClaimDerivationRule> indexed =
+                new HashMap<>();
 
         for (ClaimDerivationRule rule : rules) {
             ClaimDerivation derivation =
@@ -107,13 +48,103 @@ public final class ClaimDerivationEngine {
                             "rule derivation must not be null"
                     );
 
-            if (!derivations.add(derivation)) {
+            ClaimDerivationRule previous =
+                    indexed.putIfAbsent(
+                            derivation,
+                            rule
+                    );
+
+            if (previous != null) {
                 throw new IllegalArgumentException(
                         "derivation rule identity must be unique: "
                                 + derivation
                 );
             }
         }
+
+        this.rules = List.copyOf(rules);
+        this.byDerivation = Map.copyOf(indexed);
+    }
+
+    /**
+     * Returns every registered derivation that explicitly supports the input.
+     *
+     * <p>No Claim proposals are produced by this method.</p>
+     */
+    public List<ClaimDerivation> applicableDerivations(
+            ClaimDerivationInput input
+    ) {
+        Objects.requireNonNull(
+                input,
+                "input must not be null"
+        );
+
+        List<ClaimDerivation> applicable =
+                new ArrayList<>();
+
+        for (ClaimDerivationRule rule : rules) {
+            if (rule.supports(input)) {
+                applicable.add(
+                        rule.derivation()
+                );
+            }
+        }
+
+        return List.copyOf(applicable);
+    }
+
+    /**
+     * Executes exactly one previously identified derivation.
+     */
+    public ClaimDerivationBatch derive(
+            ClaimDerivationInput input,
+            ClaimDerivation derivation
+    ) {
+        Objects.requireNonNull(
+                input,
+                "input must not be null"
+        );
+
+        Objects.requireNonNull(
+                derivation,
+                "derivation must not be null"
+        );
+
+        ClaimDerivationRule rule =
+                byDerivation.get(derivation);
+
+        if (rule == null) {
+            throw new IllegalArgumentException(
+                    "No Claim derivation rule is registered for "
+                            + derivation
+            );
+        }
+
+        if (!rule.supports(input)) {
+            throw new IllegalArgumentException(
+                    "Claim derivation no longer supports supplied input: "
+                            + derivation
+            );
+        }
+
+        List<ClaimProposal> proposals =
+                Objects.requireNonNull(
+                        rule.derive(input),
+                        "derivation rule must not return null"
+                );
+
+        validateProposals(
+                input,
+                proposals
+        );
+
+        return new ClaimDerivationBatch(
+                new ClaimProcessingKey(
+                        input.observationId(),
+                        derivation
+                ),
+                proposals
+        );
     }
 
     private static void validateProposals(
@@ -126,13 +157,15 @@ public final class ClaimDerivationEngine {
             );
         }
 
-        ClaimOriginReference.Observation requiredOrigin =
-                new ClaimOriginReference.Observation(
+        var requiredOrigin =
+                new com.fold.modules.claims.domain.value
+                        .ClaimOriginReference.Observation(
                         input.observationId()
                 );
 
         for (ClaimProposal proposal : proposals) {
-            if (!proposal.origin().contains(requiredOrigin)) {
+            if (!proposal.origin()
+                    .contains(requiredOrigin)) {
                 throw new IllegalArgumentException(
                         "Observation-derived Claim proposal must "
                                 + "reference its originating Observation"

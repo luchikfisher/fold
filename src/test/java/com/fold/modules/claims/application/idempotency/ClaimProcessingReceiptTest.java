@@ -18,55 +18,11 @@ class ClaimProcessingReceiptTest {
 
     private static final Timestamp PROCESSED_AT =
             Timestamp.parse(
-                    "2026-10-02T12:00:00Z"
+                    "2026-10-03T12:00:00Z"
             );
 
-    private static ClaimProcessingKey key() {
-        return new ClaimProcessingKey(
-                ObservationId.random(),
-                new ClaimDerivation(
-                        ClaimDerivationKind.OBSERVED,
-                        new ClaimDerivationMethod(
-                                "company-registration-extractor",
-                                1
-                        )
-                )
-        );
-    }
-
     @Test
-    void shouldRepresentCompletedProcessingWithProducedClaims() {
-        ClaimId first =
-                ClaimId.random();
-
-        ClaimId second =
-                ClaimId.random();
-
-        ClaimProcessingReceipt receipt =
-                new ClaimProcessingReceipt(
-                        key(),
-                        PROCESSED_AT,
-                        List.of(first, second)
-                );
-
-        assertThat(receipt.processedAt())
-                .isEqualTo(PROCESSED_AT);
-
-        assertThat(receipt.producedClaimIds())
-                .containsExactly(
-                        first,
-                        second
-                );
-
-        assertThat(receipt.producedClaims())
-                .isTrue();
-
-        assertThat(receipt.producedClaimCount())
-                .isEqualTo(2);
-    }
-
-    @Test
-    void zeroClaimDerivationShouldStillProduceValidReceipt() {
+    void zeroOutputProcessingShouldStillBeCompleteResult() {
         ClaimProcessingReceipt receipt =
                 new ClaimProcessingReceipt(
                         key(),
@@ -82,14 +38,81 @@ class ClaimProcessingReceiptTest {
 
         assertThat(receipt.producedClaimIds())
                 .isEmpty();
+
+        assertThat(receipt.processedAt())
+                .isEqualTo(PROCESSED_AT);
     }
 
     @Test
-    void shouldDefensivelyCopyProducedClaimIds() {
-        List<ClaimId> claimIds =
+    void shouldRepresentCompletedProcessingWithProducedClaims() {
+        ClaimId first =
+                ClaimId.random();
+
+        ClaimId second =
+                ClaimId.random();
+
+        ClaimProcessingReceipt receipt =
+                new ClaimProcessingReceipt(
+                        key(),
+                        PROCESSED_AT,
+                        List.of(
+                                first,
+                                second
+                        )
+                );
+
+        assertThat(receipt.producedClaimIds())
+                .containsExactly(
+                        first,
+                        second
+                );
+
+        assertThat(receipt.producedClaims())
+                .isTrue();
+
+        assertThat(receipt.producedClaimCount())
+                .isEqualTo(2);
+
+        assertThat(receipt.processedAt())
+                .isEqualTo(PROCESSED_AT);
+    }
+
+    @Test
+    void shouldPreserveProducedClaimOrder() {
+        ClaimId first =
+                ClaimId.random();
+
+        ClaimId second =
+                ClaimId.random();
+
+        ClaimId third =
+                ClaimId.random();
+
+        ClaimProcessingReceipt receipt =
+                new ClaimProcessingReceipt(
+                        key(),
+                        PROCESSED_AT,
+                        List.of(
+                                first,
+                                second,
+                                third
+                        )
+                );
+
+        assertThat(receipt.producedClaimIds())
+                .containsExactly(
+                        first,
+                        second,
+                        third
+                );
+    }
+
+    @Test
+    void shouldDefensivelyCopyClaimIds() {
+        List<ClaimId> ids =
                 new ArrayList<>();
 
-        claimIds.add(
+        ids.add(
                 ClaimId.random()
         );
 
@@ -97,17 +120,17 @@ class ClaimProcessingReceiptTest {
                 new ClaimProcessingReceipt(
                         key(),
                         PROCESSED_AT,
-                        claimIds
+                        ids
                 );
 
-        claimIds.clear();
+        ids.clear();
 
         assertThat(receipt.producedClaimIds())
                 .hasSize(1);
     }
 
     @Test
-    void exposedClaimIdsShouldBeImmutable() {
+    void producedClaimIdsShouldBeImmutable() {
         ClaimProcessingReceipt receipt =
                 new ClaimProcessingReceipt(
                         key(),
@@ -118,7 +141,8 @@ class ClaimProcessingReceiptTest {
                 );
 
         assertThatThrownBy(
-                () -> receipt.producedClaimIds()
+                () -> receipt
+                        .producedClaimIds()
                         .clear()
         )
                 .isInstanceOf(
@@ -127,8 +151,8 @@ class ClaimProcessingReceiptTest {
     }
 
     @Test
-    void shouldRejectDuplicateClaimIds() {
-        ClaimId claimId =
+    void duplicateProducedClaimIdsShouldBeRejected() {
+        ClaimId id =
                 ClaimId.random();
 
         assertThatThrownBy(
@@ -136,8 +160,8 @@ class ClaimProcessingReceiptTest {
                         key(),
                         PROCESSED_AT,
                         List.of(
-                                claimId,
-                                claimId
+                                id,
+                                id
                         )
                 )
         )
@@ -150,21 +174,21 @@ class ClaimProcessingReceiptTest {
     }
 
     @Test
-    void shouldRejectNullClaimId() {
-        List<ClaimId> values =
+    void nullProducedClaimIdShouldBeRejected() {
+        List<ClaimId> ids =
                 new ArrayList<>();
 
-        values.add(
+        ids.add(
                 ClaimId.random()
         );
 
-        values.add(null);
+        ids.add(null);
 
         assertThatThrownBy(
                 () -> new ClaimProcessingReceipt(
                         key(),
                         PROCESSED_AT,
-                        values
+                        ids
                 )
         )
                 .isInstanceOf(
@@ -176,7 +200,7 @@ class ClaimProcessingReceiptTest {
     }
 
     @Test
-    void shouldRejectNullKey() {
+    void nullKeyShouldBeRejected() {
         assertThatThrownBy(
                 () -> new ClaimProcessingReceipt(
                         null,
@@ -193,7 +217,7 @@ class ClaimProcessingReceiptTest {
     }
 
     @Test
-    void shouldRejectNullProcessingTime() {
+    void nullProcessingTimeShouldBeRejected() {
         assertThatThrownBy(
                 () -> new ClaimProcessingReceipt(
                         key(),
@@ -210,7 +234,7 @@ class ClaimProcessingReceiptTest {
     }
 
     @Test
-    void shouldRejectNullClaimCollection() {
+    void nullProducedClaimCollectionShouldBeRejected() {
         assertThatThrownBy(
                 () -> new ClaimProcessingReceipt(
                         key(),
@@ -224,5 +248,18 @@ class ClaimProcessingReceiptTest {
                 .hasMessage(
                         "producedClaimIds must not be null"
                 );
+    }
+
+    private static ClaimProcessingKey key() {
+        return new ClaimProcessingKey(
+                ObservationId.random(),
+                new ClaimDerivation(
+                        ClaimDerivationKind.OBSERVED,
+                        new ClaimDerivationMethod(
+                                "test-rule",
+                                1
+                        )
+                )
+        );
     }
 }
