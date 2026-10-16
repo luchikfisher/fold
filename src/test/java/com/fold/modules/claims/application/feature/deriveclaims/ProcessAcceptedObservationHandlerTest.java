@@ -27,6 +27,7 @@ import com.fold.modules.claims.domain.value.ClaimObject;
 import com.fold.modules.claims.domain.value.ClaimOrigin;
 import com.fold.modules.claims.domain.value.ClaimPredicate;
 import com.fold.modules.claims.domain.value.ClaimProposition;
+import com.fold.modules.claims.domain.value.ClaimRevision;
 import com.fold.modules.claims.domain.value.ClaimSubject;
 import com.fold.modules.observations.api.event.ObservationAcceptedV1;
 import com.fold.modules.observations.api.query.ObservationQueries;
@@ -496,6 +497,16 @@ class ProcessAcceptedObservationHandlerTest {
 
         private final List<Claim> claims =
                 new ArrayList<>();
+
+        @Override
+        public List<ClaimId> lockByIds(List<ClaimId> ids) {
+            throw new UnsupportedOperationException("Lifecycle not used by this test");
+        }
+
+        @Override
+        public void appendLifecycleRevision(Claim claim, ClaimRevision expectedRevision) {
+            throw new UnsupportedOperationException("Lifecycle not used by this test");
+        }
 
         @Override
         public void add(

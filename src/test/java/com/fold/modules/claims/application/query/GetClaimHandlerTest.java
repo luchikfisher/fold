@@ -5,9 +5,11 @@ import com.fold.modules.claims.api.query.GetClaimQuery;
 import com.fold.modules.claims.api.view.ClaimView;
 import com.fold.modules.claims.domain.model.Claim;
 import com.fold.modules.claims.domain.repository.ClaimRepository;
+import com.fold.modules.claims.domain.value.ClaimRevision;
 import com.fold.testsupport.claims.ClaimTestFixtures;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +23,16 @@ class GetClaimHandlerTest {
 
         ClaimRepository repository =
                 new ClaimRepository() {
+                    @Override
+                    public List<ClaimId> lockByIds(List<ClaimId> ids) {
+                        throw new UnsupportedOperationException("Lifecycle not used by this test");
+                    }
+
+                    @Override
+                    public void appendLifecycleRevision(Claim claim, ClaimRevision expectedRevision) {
+                        throw new UnsupportedOperationException("Lifecycle not used by this test");
+                    }
+
                     @Override
                     public void add(
                             Claim ignored
@@ -79,6 +91,16 @@ class GetClaimHandlerTest {
 
     private static final class EmptyRepository
             implements ClaimRepository {
+
+        @Override
+        public List<ClaimId> lockByIds(List<ClaimId> ids) {
+            throw new UnsupportedOperationException("Lifecycle not used by this test");
+        }
+
+        @Override
+        public void appendLifecycleRevision(Claim claim, ClaimRevision expectedRevision) {
+            throw new UnsupportedOperationException("Lifecycle not used by this test");
+        }
 
         @Override
         public void add(

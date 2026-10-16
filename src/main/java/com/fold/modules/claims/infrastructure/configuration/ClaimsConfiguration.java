@@ -4,6 +4,7 @@ import com.fold.kernel.events.EventPublisher;
 import com.fold.kernel.time.FoldClock;
 import com.fold.modules.claims.application.feature.deriveclaims.ClaimDerivationEngine;
 import com.fold.modules.claims.application.feature.deriveclaims.ProcessAcceptedObservationHandler;
+import com.fold.modules.claims.application.feature.lifecycle.ClaimLifecycleHandler;
 import com.fold.modules.claims.application.idempotency.ClaimProcessingRepository;
 import com.fold.modules.claims.application.integration.observations.AcceptedObservationClaimInputProvider;
 import com.fold.modules.claims.application.integration.observations.ObservationClaimDerivationInputMapper;
@@ -20,6 +21,15 @@ import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 public class ClaimsConfiguration {
+
+    @Bean
+    ClaimLifecycleHandler claimLifecycleHandler(
+            ClaimRepository repository,
+            FoldClock clock,
+            EventPublisher publisher
+    ) {
+        return new ClaimLifecycleHandler(repository, clock, publisher);
+    }
 
     @Bean
     ClaimDerivationEngine claimDerivationEngine(
