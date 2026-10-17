@@ -221,7 +221,7 @@ class PostgresObservationRepositoryTest
     }
 
     @Test
-    void observedAtShouldRoundTripWithoutPrecisionDrift() {
+    void allObservationTimesShouldRoundTripWithoutPrecisionDrift() {
         Observation observation =
                 Observation.receive(
                         ObservationId.random(),
@@ -234,9 +234,9 @@ class PostgresObservationRepositoryTest
                         ),
                         ObservationPayload.of(
                                 ObservationField.of(
-                                        "organization.name",
-                                        ObservationValue.Text.of(
-                                                "Acme Ltd"
+                                        "organization.registered-at",
+                                        ObservationValue.TimestampValue.of(
+                                                Timestamp.parse("2026-09-29T10:00:00.123456789Z")
                                         )
                                 )
                         ),
@@ -254,14 +254,14 @@ class PostgresObservationRepositoryTest
                         ),
                         ArrivedAt.of(
                                 Timestamp.parse(
-                                        "2026-09-29T10:00:01Z"
+                                        "2026-09-29T10:00:01.987654999Z"
                                 )
                         )
                 );
 
         observation.accept(
                 Timestamp.parse(
-                        "2026-09-29T10:00:02Z"
+                        "2026-09-29T10:00:02.999999999Z"
                 )
         );
 
@@ -271,6 +271,10 @@ class PostgresObservationRepositoryTest
                 repository.findById(
                         observation.id()
                 ).orElseThrow();
+
+        assertThat(restored.arrivedAt()).isEqualTo(observation.arrivedAt());
+        assertThat(restored.decidedAt()).isEqualTo(observation.decidedAt());
+        assertThat(restored.payload()).isEqualTo(observation.payload());
 
         assertThat(restored.observedAt())
                 .isEqualTo(

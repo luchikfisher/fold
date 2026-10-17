@@ -7,6 +7,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TimeRangeTest {
 
+    @Test
+    void shouldRejectBoundariesThatCollapseToSameMicrosecond() {
+        Timestamp start = Timestamp.parse("2026-09-25T10:00:00.123456100Z");
+        Timestamp end = Timestamp.parse("2026-09-25T10:00:00.123456999Z");
+
+        assertThatThrownBy(() -> TimeRange.between(start, end))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("startInclusive must be before endExclusive");
+    }
+
+    @Test
+    void canonicalMicrosecondBoundariesShouldRemainHalfOpenAndAdjacent() {
+        Timestamp start = Timestamp.parse("2026-09-25T10:00:00.123456999Z");
+        Timestamp end = Timestamp.parse("2026-09-25T10:00:00.123457001Z");
+        TimeRange range = TimeRange.between(start, end);
+        TimeRange adjacent = TimeRange.from(
+                Timestamp.parse("2026-09-25T10:00:00.123457999Z")
+        );
+
+        assertThat(range.contains(
+                Timestamp.parse("2026-09-25T10:00:00.123456001Z")
+        )).isTrue();
+        assertThat(range.contains(adjacent.startInclusive())).isFalse();
+        assertThat(range.overlaps(adjacent)).isFalse();
+        assertThat(adjacent.overlaps(range)).isFalse();
+    }
+
     private static final Timestamp T0 =
             Timestamp.parse("2026-09-25T10:00:00Z");
 

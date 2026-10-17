@@ -84,7 +84,7 @@ public final class ObservationController {
         }
 
         return getObservation
-                .handle(
+                .get(
                         new GetObservationQuery(
                                 observationId
                         )

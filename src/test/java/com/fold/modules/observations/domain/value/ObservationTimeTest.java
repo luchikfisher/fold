@@ -56,7 +56,7 @@ class ObservationTimeTest {
     }
 
     @Test
-    void observedAtShouldNormalizeToMicrosecondPrecision() {
+    void observedAtShouldCarryCanonicalTimestampPrecision() {
         ObservedAt observedAt =
                 ObservedAt.of(
                         Timestamp.parse(
