@@ -1,5 +1,7 @@
 package com.fold.modules.claims.application.feature.deriveclaims;
 
+import com.fold.kernel.ids.ClaimId;
+import com.fold.kernel.ids.EvidenceId;
 import com.fold.kernel.ids.ObservationId;
 import com.fold.kernel.ids.SourceId;
 import com.fold.kernel.time.Timestamp;
@@ -11,8 +13,14 @@ import com.fold.modules.claims.domain.derivation.ClaimProposal;
 import com.fold.modules.claims.domain.value.ClaimDerivation;
 import com.fold.modules.claims.domain.value.ClaimDerivationKind;
 import com.fold.modules.claims.domain.value.ClaimDerivationMethod;
+import com.fold.modules.claims.domain.value.ClaimOrigin;
+import com.fold.modules.claims.domain.value.ClaimOriginReference;
+import com.fold.testsupport.claims.ClaimTestFixtures;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -258,7 +266,45 @@ class ClaimDerivationEngineTest {
                 );
     }
 
+    @ParameterizedTest
+    @ValueSource(classes = {ClaimOriginReference.Observation.class, ClaimOriginReference.Source.class,
+            ClaimOriginReference.Evidence.class})
+    void shouldRejectAnyProposalMissingRequiredProvenance(Class<? extends ClaimOriginReference> missingType) {
+        ClaimDerivationInput input = input(EvidenceId.random());
+        ClaimOrigin complete = input.origin().toClaimOrigin();
+        var incomplete = new LinkedHashSet<>(complete.references());
+        incomplete.removeIf(missingType::isInstance);
+        // A different upstream identity of the same kind cannot replace the required one.
+        incomplete.addAll(ClaimTestFixtures.origin().references());
+        var proposals = List.of(ClaimProposal.of(ClaimTestFixtures.proposition(), complete),
+                ClaimProposal.of(ClaimTestFixtures.proposition(), new ClaimOrigin(incomplete)));
+        var engine = new ClaimDerivationEngine(List.of(new TestRule(FIRST, true, new AtomicInteger(), proposals)));
+
+        assertThatThrownBy(() -> engine.derive(input, FIRST))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("required upstream provenance");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldPreserveCompleteProvenanceAndAllowAdditionalReferences(boolean hasEvidence) {
+        ClaimDerivationInput input = input(hasEvidence ? EvidenceId.random() : null);
+        ClaimOrigin complete = input.origin().toClaimOrigin();
+        var extended = new LinkedHashSet<>(complete.references());
+        extended.add(new ClaimOriginReference.Claim(ClaimId.random()));
+        extended.add(new ClaimOriginReference.Source(SourceId.random()));
+        var proposals = List.of(ClaimProposal.of(ClaimTestFixtures.proposition(), complete),
+                ClaimProposal.of(ClaimTestFixtures.proposition(), new ClaimOrigin(extended)));
+        var engine = new ClaimDerivationEngine(List.of(new TestRule(FIRST, true, new AtomicInteger(), proposals)));
+
+        assertThat(engine.derive(input, FIRST).proposals()).containsExactlyElementsOf(proposals);
+    }
+
     private static ClaimDerivationInput input() {
+        return input(null);
+    }
+
+    private static ClaimDerivationInput input(EvidenceId evidenceId) {
         ObservationId observationId =
                 ObservationId.random();
 
@@ -273,7 +319,7 @@ class ClaimDerivationEngineTest {
                 new ClaimDerivationOrigin(
                         observationId,
                         SourceId.random(),
-                        null,
+                        evidenceId,
                         null
                 ),
                 Timestamp.parse(
@@ -301,15 +347,22 @@ class ClaimDerivationEngineTest {
         private final ClaimDerivation derivation;
         private final boolean supports;
         private final AtomicInteger executions;
+        private final List<ClaimProposal> proposals;
 
         private TestRule(
                 ClaimDerivation derivation,
                 boolean supports,
                 AtomicInteger executions
         ) {
+            this(derivation, supports, executions, List.of());
+        }
+
+        private TestRule(ClaimDerivation derivation, boolean supports, AtomicInteger executions,
+                         List<ClaimProposal> proposals) {
             this.derivation = derivation;
             this.supports = supports;
             this.executions = executions;
+            this.proposals = proposals;
         }
 
         @Override
@@ -329,7 +382,7 @@ class ClaimDerivationEngineTest {
                 ClaimDerivationInput input
         ) {
             executions.incrementAndGet();
-            return List.of();
+            return proposals;
         }
     }
 }

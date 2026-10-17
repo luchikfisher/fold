@@ -157,18 +157,15 @@ public final class ClaimDerivationEngine {
             );
         }
 
-        var requiredOrigin =
-                new com.fold.modules.claims.domain.value
-                        .ClaimOriginReference.Observation(
-                        input.observationId()
-                );
+        var requiredReferences =
+                input.origin().toClaimOrigin().references();
 
         for (ClaimProposal proposal : proposals) {
             if (!proposal.origin()
-                    .contains(requiredOrigin)) {
+                    .references().containsAll(requiredReferences)) {
                 throw new IllegalArgumentException(
                         "Observation-derived Claim proposal must "
-                                + "reference its originating Observation"
+                                + "preserve all required upstream provenance"
                 );
             }
         }

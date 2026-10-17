@@ -3,6 +3,8 @@ package com.fold.modules.claims.infrastructure.transaction;
 import com.fold.kernel.events.EventEnvelope;
 import com.fold.kernel.events.EventMetadata;
 import com.fold.kernel.events.EventPublisher;
+import com.fold.kernel.ids.ClaimId;
+import com.fold.kernel.ids.EvidenceId;
 import com.fold.kernel.time.FoldClock;
 import com.fold.kernel.time.Timestamp;
 import com.fold.modules.claims.application.feature.deriveclaims.ClaimDerivationEngine;
@@ -16,6 +18,8 @@ import com.fold.modules.claims.domain.value.ClaimDerivation;
 import com.fold.modules.claims.domain.value.ClaimDerivationKind;
 import com.fold.modules.claims.domain.value.ClaimDerivationMethod;
 import com.fold.modules.claims.domain.value.ClaimObject;
+import com.fold.modules.claims.domain.value.ClaimOrigin;
+import com.fold.modules.claims.domain.value.ClaimOriginReference;
 import com.fold.modules.claims.domain.value.ClaimPredicate;
 import com.fold.modules.claims.domain.value.ClaimProposition;
 import com.fold.modules.claims.domain.value.ClaimSubject;
@@ -29,6 +33,8 @@ import com.fold.modules.observations.api.view.ObservationView;
 import com.fold.testsupport.PostgresIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -37,8 +43,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -138,6 +146,14 @@ class ClaimProcessingTransactionIntegrationTest
             ObservationView observation,
             EventPublisher publisher
     ) {
+        return handler(observation, publisher, UnaryOperator.identity());
+    }
+
+    private ProcessAcceptedObservationHandler handler(
+            ObservationView observation,
+            EventPublisher publisher,
+            UnaryOperator<ClaimOrigin> proposalOrigin
+    ) {
         ObservationQueries queries =
                 query ->
                         Optional.of(
@@ -186,8 +202,7 @@ class ClaimProcessingTransactionIntegrationTest
                                                         "Germany"
                                                 )
                                         ),
-                                        input.origin()
-                                                .toClaimOrigin()
+                                        proposalOrigin.apply(input.origin().toClaimOrigin())
                                 )
                         );
                     }
@@ -265,6 +280,10 @@ class ClaimProcessingTransactionIntegrationTest
     }
 
     private static ObservationView observation() {
+        return observation(null);
+    }
+
+    private static ObservationView observation(EvidenceId evidenceId) {
         return new ObservationView(
                 com.fold.kernel.ids
                         .ObservationId.random(),
@@ -277,7 +296,7 @@ class ClaimProcessingTransactionIntegrationTest
                 new ObservationView.Origin(
                         com.fold.kernel.ids
                                 .SourceId.random(),
-                        null,
+                        evidenceId,
                         null
                 ),
                 new ObservationView.Fingerprint(
@@ -297,6 +316,46 @@ class ClaimProcessingTransactionIntegrationTest
                 ),
                 null
         );
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ClaimOriginReference.Source.class, ClaimOriginReference.Evidence.class})
+    void incompleteProvenanceShouldRollBackAcquisitionAndAllowCorrectedRetry(
+            Class<? extends ClaimOriginReference> missingType
+    ) {
+        ObservationView observation = observation(EvidenceId.random());
+        var outbox = new com.fold.platform.events.JdbcOutboxEventPublisher(jdbc,
+                new com.fold.platform.events.OutboxEventSerializer(objectMapper));
+        var invalidHandler = handler(observation, outbox, origin -> {
+            var references = new LinkedHashSet<>(origin.references());
+            references.removeIf(missingType::isInstance);
+            return new ClaimOrigin(references);
+        });
+        var transaction = new TransactionTemplate(transactionManager);
+        var event = envelope(observation);
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> invalidHandler.handle(event)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("required upstream provenance");
+        for (String table : List.of("claims", "claim_origin_references", "claim_lifecycle_revisions",
+                "claim_processing", "integration_outbox")) {
+            assertThat(count(table)).as(table).isZero();
+        }
+
+        // The failed acquisition must not suppress a corrected retry, including extra provenance.
+        var expected = new LinkedHashSet<>(new ObservationClaimDerivationInputMapper().map(observation)
+                .origin().toClaimOrigin().references());
+        expected.add(new ClaimOriginReference.Claim(ClaimId.random()));
+        var correctedHandler = handler(observation, outbox, origin -> new ClaimOrigin(expected));
+        transaction.executeWithoutResult(status -> correctedHandler.handle(event));
+        assertThat(count("claims")).isEqualTo(1);
+        assertThat(count("claim_processing")).isEqualTo(1);
+        assertThat(count("integration_outbox")).isEqualTo(1);
+        var id = new ClaimId(jdbc.getJdbcOperations().queryForObject("SELECT id FROM claims", java.util.UUID.class));
+        var repository = new PostgresClaimRepository(jdbc,
+                new ClaimPersistenceMapper(new ClaimObjectJsonCodec(objectMapper)));
+        assertThat(repository.findById(id).orElseThrow().origin().references())
+                .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test
