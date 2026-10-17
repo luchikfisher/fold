@@ -1,6 +1,5 @@
 package com.fold.modules.claims.application.query;
 
-import com.fold.modules.claims.api.query.ClaimQueries;
 import com.fold.modules.claims.api.query.GetClaimQuery;
 import com.fold.modules.claims.api.view.ClaimView;
 import com.fold.modules.claims.domain.repository.ClaimRepository;
@@ -11,8 +10,7 @@ import java.util.Optional;
 /**
  * Retrieves one authoritative Claim for public read access.
  */
-public final class GetClaimHandler
-        implements ClaimQueries {
+public final class GetClaimHandler {
 
     private final ClaimRepository repository;
 
@@ -25,7 +23,6 @@ public final class GetClaimHandler
         );
     }
 
-    @Override
     public Optional<ClaimView> get(
             GetClaimQuery query
     ) {

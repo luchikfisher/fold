@@ -6,7 +6,7 @@ import com.fold.modules.claims.application.feature.deriveclaims.ProcessAcceptedO
 import com.fold.modules.claims.application.feature.deriveclaims.ProcessAcceptedObservationUseCase;
 import com.fold.modules.claims.application.integration.observations.AcceptedObservationClaimInputProvider;
 import com.fold.modules.claims.application.integration.observations.ObservationClaimDerivationInputMapper;
-import com.fold.modules.claims.application.query.GetClaimHandler;
+import com.fold.modules.claims.application.query.DefaultClaimQueries;
 import com.fold.modules.claims.domain.repository.ClaimRepository;
 import com.fold.modules.claims.infrastructure.persistence.mapper.ClaimObjectJsonCodec;
 import com.fold.modules.claims.infrastructure.persistence.mapper.ClaimPersistenceMapper;
@@ -88,10 +88,10 @@ class ClaimsConfigurationIntegrationTest
     }
 
     @Test
-    void publicClaimQueriesShouldResolveToGetClaimHandler() {
+    void publicClaimQueriesShouldResolveToReadFacade() {
         assertThat(queries)
                 .isInstanceOf(
-                        GetClaimHandler.class
+                        DefaultClaimQueries.class
                 );
     }
 }

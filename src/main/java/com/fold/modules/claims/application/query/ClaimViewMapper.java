@@ -104,7 +104,8 @@ public final class ClaimViewMapper {
         );
     }
 
-    private static ClaimObjectView mapObject(
+    /** Maps a typed object for both detail and summary reads without aggregate hydration. */
+    public static ClaimObjectView mapObject(
             ClaimObject object
     ) {
         return switch (object) {
